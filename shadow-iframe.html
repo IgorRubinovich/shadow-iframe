@@ -1,0 +1,373 @@
+<dom-module id="shadow-iframe">  
+	<style>
+		
+		paper-spinner {
+			margin : 300px 100px 100px;
+			height : 25px;
+			width : 25px;
+		}
+
+		#viewPort {
+			padding : 5px 5px 5px 10px;
+		}
+		
+		#backdrop {
+			background : white;
+			opacity  : .7;
+			transition : .2s;
+		}
+	</style>
+	<template>
+		<div id="viewPort">
+		</div>
+		<div id="backdrop" class="fit center">
+			<paper-spinner id="spinner"></paper-spinner>
+		</div>
+
+		<!-- Partial loader last-response="{{ content }}" -->
+		<iron-ajax
+			url="{{ url }}"
+			id="contentLoader"
+			handle-as="text"
+			on-response="urlLoaded"
+			on-error="urlLoadedError"
+			debounce-duration="300"
+			
+			params="{{ urlParams }}"
+			
+			last-error="{{ lastError }}"
+			verbose=true
+		></iron-ajax>
+
+		<!-- Form submitter -->
+		<iron-ajax
+			url="/"
+			method="POST"
+			content-type="{{ contentType }}"
+			id="formSubmitter"
+			handle-as="text"
+			on-response="formSubmitted"
+			on-error="formSubmitError"
+			debounce-duration="300"
+			last-response="{{ lastFormResponse }}"
+			last-error="{{ lastError }}"
+			verbose=true
+		></iron-ajax>
+
+	</template>
+</dom-module>
+
+<script>
+	Polymer({
+		is : 'shadow-iframe',
+		properties : {
+			urlParams : {
+				type : Object
+			},
+			
+			content : { 
+				type : Object,
+				value : "",
+				notify : true,
+				observer : '_contentChanged'
+			},
+			hijackForm : {
+				type : Boolean
+			},			
+			hideSubmit : {
+				type : Boolean
+			},
+			url : {
+				type : String,
+				value : null,
+				notify : true,
+				observer : "_urlChanged"
+			},
+			lastResponse : {
+				type : String,
+				value : "",
+				notify : true
+			},
+			lastError : {
+				type : Object,
+				value : "",
+				notify : true
+			},			
+			contentType : {
+				type : String,
+				value : "application/x-www-form-urlencoded",
+				notify : true
+			},
+			routes : {
+				type : Array,
+				value : []
+			}
+		},
+		
+		ready : function() {
+			this.submitters = [];
+
+			var that = this;
+ 
+ 			this._firstTime = 0;
+ 			this._unchanged = false;
+ 
+ 			"mousedown,mouseup,keydown,keyup,click".split(',')
+ 			    .forEach(function(evType)
+ 			    {
+ 			     	that.addEventListener(evType, function(e){
+ 			     		if(e.type != "change" && that._firstTime == 0)
+ 			     		{
+ 			     			that._formChanged = urlEncodeForm(Polymer.dom(that.root).querySelector('form'));
+ 			     			that._firstTime = 1;
+ 			     		}
+ 						else
+ 							if(that._firstTime == 1)
+ 								if(that._formChanged == urlEncodeForm(Polymer.dom(that.root).querySelector('form')))
+ 									{
+ 										if(!that._unchanged)
+ 											that.fire('unchange');
+ 
+ 										that._unchanged = true;
+ 									}
+ 								else
+ 									{
+ 										that._unchanged = false;
+ 										that.fire('change');
+ 									}	
+ 					});
+ 			    });
+		},
+		
+		/*ready : function() {
+			this.addEventListener('keyup', function(ev) {
+				var k = ev.keyCode || ev.which;
+				
+				if(k == 8 || k == 13)
+				{
+					ev.stopImmediatePropagation();
+					ev.stopPropagation();
+					ev.preventDefault();
+				}
+			});
+		},*/
+		
+		_urlChanged : function() {
+			if(!this.url)
+				this.content = "";
+			else
+			{
+				this.$.contentLoader.generateRequest(); 
+				this.setDisplayMode('waiting');
+			}
+		},
+		
+		navigate : function(url) {
+			if(url == this.url)
+				this.url = "";
+
+			this.set('url', url);
+		},
+		
+		_contentChanged : function() {
+			var that = this;
+			this._firstTime = 0;
+			this._unchanged = false;
+			
+			this.async(function() { // be a little more graceful to disconnected observers
+				this.$.viewPort.innerHTML = this.content;
+				
+				Polymer.dom.flush();
+				this.async(function() {
+					this.form = Polymer.dom(this.root).querySelector("form");
+								
+					var submitters = Polymer.dom(this.root).querySelectorAll("[type='submit']")
+					
+					if(this.hideSubmit || this.hijackForm)
+						submitters.forEach(function(el) {
+							if(el.__bound) return;
+							el.__bound = true;
+
+							if(this.hideSubmit)
+								el.style.visibility = 'hidden';
+							if(this.hijackForm)
+								el.addEventListener('click', function(ev) { that.onSubmit(ev); });
+						}.bind(this));
+										
+					if(this.form)
+					{
+						var s = document.createElement('button');
+						s.type = "submit";
+						s.style.display = "none";
+						s.addEventListener('click', function(ev) { that.onSubmit(ev); });
+						Polymer.dom(this.form).appendChild(s);
+						this.submitter = s;
+						
+						this.form.addEventListener('submit', function(ev) { 
+							if(!this.isSubmitInProgress)
+								ev.preventDefault();
+							
+							this.isSubmitInProgress = false;
+						});
+					}
+
+					var scripts = this.$.viewPort.querySelectorAll('script');
+ 					for (var i=0; i<scripts.length; i++)
+ 					{
+ 						if (scripts[i].nodeName != 'SCRIPT')
+ 					    	throw new Error("swapScript requires script");
+ 					    var clone = document.createElement('script');
+ 					  	clone.appendChild( document.createTextNode(scripts[i].textContent));
+ 					 	scripts[i].parentNode.insertBefore(clone, scripts[i]);
+ 					  	scripts[i].parentNode.removeChild(scripts[i]);
+ 					}	
+
+					this.fire('ready');
+				});
+			});
+		},
+		
+		submit : function(url, method, form) {
+			if(this.isSubmitInProgress)
+				return;
+
+			this._form = this.form;
+
+			if(form)
+				this._form = form;
+
+			if(url && this._form)
+				this._form.action = url;
+				
+			this.isSubmitInProgress = true; // extra safety against duplicate submissions
+			this.httpMethod = method;
+
+			if(this.submitter && !form)
+				this.submitter.click();
+			else
+				this.onSubmit();
+		},
+		
+		onSubmitterClick : function(ev) {
+			ev.detail.preventDefault(); // remember this is a wrapped event
+		},
+
+		onSubmit : function(ev) {
+			var prevent = false, evObj;
+
+			if(!this._form)
+				this._form = this.form;
+
+			if(ev)
+			{
+				ev.preventDefault();
+
+				if(ev.keyCode == 13) {
+					ev.preventDefault();
+					return false;
+				};
+			}
+
+			evDetailObj = {
+				form : this._form,
+				preventDefault : function() { 
+					prevent = true;
+				},
+				submitUrl : this._form.action,
+				originalEvent : ev
+			};
+			
+			this._evDetailObj = evDetailObj;
+			
+			this.fire('submit', evDetailObj);
+
+			if(prevent)
+				return;
+
+			this.$.formSubmitter.body = urlEncodeForm(this._form);
+			this.$.formSubmitter.url = evDetailObj.submitUrl;
+			
+			if(this.httpMethod)
+				this.$.formSubmitter.method = this.httpMethod.toUpperCase();
+			else
+				this.$.formSubmitter.method = "POST";
+			
+			this.$.formSubmitter.generateRequest();
+
+			this.setDisplayMode('waiting');
+			
+			console.log('submitting form'); 
+		},
+		
+		formSubmitted : function() {
+			var parser, path, pre;
+			
+			parser = document.createElement('a'); // a brilliant method from https://gist.github.com/jlong/2428561
+			parser.href = this._form.action;
+			path = parser.pathname; 
+
+			this.isSubmitInProgress = false;
+			this.httpMethod = null;
+			this.fire('submit-complete', this.lastFormResponse);
+			
+			this._evDetailObj.response = this.lastFormResponse;
+			
+			this.fire('submit-complete-routing', this._evDetailObj);
+			
+			for(i = 0; i < this.routes.length; i++)
+			{
+				pre = new RegExp(this.routes[i].from);
+				if(pre.test(path))
+					this.navigate(path.replace(pre, this.routes[i].to));
+			}
+			
+			this._evDetailObj = null;
+
+			this.setDisplayMode('ready');
+
+			this._form = null;
+		},
+		
+		formSubmitError : function(ev) {
+			this.lastError.status = ev.srcElement.lastRequest.xhr.status;
+			this.isSubmitInProgress = false;
+			this.httpMethod = null;
+			
+			this.fire('submit-error');
+		},
+		
+		urlLoadedError : function(ev) {
+			this.content = "<pre>" + this.lastError.error + "</pre>";
+						
+			this.lastError.status = ev.srcElement.lastRequest.xhr.status;
+			
+			this.fire("error");
+			this.setDisplayMode('ready');
+		},
+		
+		urlLoaded : function(ev) {
+			this.fire('loaded');
+			this.setDisplayMode('ready');
+
+			this.content = "";
+			this.set('content',  ev.detail.response);
+		},
+		
+		setDisplayMode : function(mode) {
+			this.mode = mode;
+			this.$.spinner.active = mode == 'waiting';
+			this.$.backdrop.style.display = this.$.spinner.active ? 'block' : 'none';
+			//this.$.viewPort.style.visibility = this.$.spinner.active ? 'none' : 'block';
+		},
+	});
+	
+	function urlEncodeForm(form) {
+		var i = -1, res = [];
+		while(++i < form.length)
+			if(form[i].name)
+				res.push(form[i].name + "=" + encodeURIComponent(form[i].value));
+
+		return res.join("&");
+	}
+</script>
+
