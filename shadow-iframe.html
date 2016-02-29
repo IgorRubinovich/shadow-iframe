@@ -126,14 +126,15 @@
  								if(that._formChanged == urlEncodeForm(Polymer.dom(that.root).querySelector('form')))
  									{
  										if(!that._unchanged)
+ 										{
  											that.fire('unchange');
- 
- 										that._unchanged = true;
+ 											that._unchanged = true;
+ 										} 										
  									}
  								else
  									{
  										that._unchanged = false;
- 										that.fire('change');
+ 										that.fire('formchange');
  									}	
  					});
  			    });
