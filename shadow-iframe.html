@@ -111,7 +111,7 @@
  
  			this._firstTime = 0;
  			this._unchanged = false;
- 
+ 			
  			"mousedown,mouseup,keydown,keyup,click".split(',')
  			    .forEach(function(evType)
  			    {
@@ -333,14 +333,20 @@
 			this.lastError.status = ev.srcElement.lastRequest.xhr.status;
 			this.isSubmitInProgress = false;
 			this.httpMethod = null;
-			
-			this.fire('submit-error');
+
+			this.fire('iframe-error', { error : this.lastError, retry : function() {
+				this.$.formSubmitter.generateRequest();
+			}.bind(this)});
 		},
 		
 		urlLoadedError : function(ev) {
-			this.content = "<pre>" + this.lastError.error + "</pre>";
+			//this.content = "<pre>" + this.lastError.error + "</pre>";
 						
 			this.lastError.status = ev.srcElement.lastRequest.xhr.status;
+
+			this.fire('iframe-error', { error : this.lastError, retry : function() {
+				this.$.contentLoader.generateRequest();
+			}.bind(this)});
 			
 			this.fire("error");
 			this.setDisplayMode('ready');
