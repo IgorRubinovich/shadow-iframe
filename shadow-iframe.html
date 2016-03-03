@@ -330,7 +330,7 @@
 		},
 		
 		formSubmitError : function(ev) {
-			this.lastError.status = ev.srcElement.lastRequest.xhr.status;
+			this.lastError.status = ev.target.lastRequest.xhr.status;
 			this.isSubmitInProgress = false;
 			this.httpMethod = null;
 
@@ -342,7 +342,7 @@
 		urlLoadedError : function(ev) {
 			//this.content = "<pre>" + this.lastError.error + "</pre>";
 						
-			this.lastError.status = ev.srcElement.lastRequest.xhr.status;
+			this.lastError.status = ev.target.lastRequest.xhr.status;
 
 			this.fire('iframe-error', { error : this.lastError, retry : function() {
 				this.$.contentLoader.generateRequest();
