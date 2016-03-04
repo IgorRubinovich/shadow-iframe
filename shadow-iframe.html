@@ -116,14 +116,18 @@
  			    .forEach(function(evType)
  			    {
  			     	that.addEventListener(evType, function(e){
+						var f = Polymer.dom(that.root).querySelector('form');
+						if(!f)
+							return;
+						
  			     		if(e.type != "change" && that._firstTime == 0)
  			     		{
- 			     			that._formChanged = urlEncodeForm(Polymer.dom(that.root).querySelector('form'));
+ 			     			that._formChanged = urlEncodeForm(f);
  			     			that._firstTime = 1;
  			     		}
  						else
  							if(that._firstTime == 1)
- 								if(that._formChanged == urlEncodeForm(Polymer.dom(that.root).querySelector('form')))
+ 								if(that._formChanged == urlEncodeForm(f))
  									{
  										if(!that._unchanged)
  										{
