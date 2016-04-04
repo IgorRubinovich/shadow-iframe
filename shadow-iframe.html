@@ -225,11 +225,28 @@
  					  	clone.appendChild( document.createTextNode(scripts[i].textContent));
  					 	scripts[i].parentNode.insertBefore(clone, scripts[i]);
  					  	scripts[i].parentNode.removeChild(scripts[i]);
- 					}	
+ 					}
+
+ 					var templates = Polymer.dom(this.$.viewPort.querySelectorAll('template')).node;
+ 					for(var j = 0; j < templates.length; j++)
+ 						this.injectBoundHTML(templates[j].innerHTML, templates[j]);
 
 					this.fire('ready');
 				});
 			});
+		},
+
+		injectBoundHTML : function(html, element) {
+		    var template = document.createElement('template', 'dom-bind');
+		    var doc = template.content.ownerDocument;
+		    var div = doc.createElement('div');
+		    div.innerHTML = html;
+		    template.content.appendChild(div);
+		    while (element.firstChild) {
+		        element.removeChild(element.firstChild);
+		    }
+		    element.appendChild(Polymer.Base.instanceTemplate(template));
+		    element.fire('dom-change');
 		},
 		
 		submit : function(url, method, form) {
