@@ -227,25 +227,30 @@
  					  	scripts[i].parentNode.removeChild(scripts[i]);
  					}
 
- 					var templates = Polymer.dom(this.$.viewPort.querySelectorAll('template')).node;
+ 					var templates = Polymer.dom(this.$.viewPort).querySelectorAll('template');
  					for(var j = 0; j < templates.length; j++)
- 						this.injectBoundHTML(templates[j].innerHTML, templates[j]);
+ 						this.injectBoundHTML(templates[j]);
 
 					this.fire('ready');
 				});
 			});
 		},
 
-		injectBoundHTML : function(html, element) {
-		    var template = document.createElement('template', 'dom-bind');
+		injectBoundHTML : function(element) {
+		    var template = element.cloneNode(false);
 		    var doc = template.content.ownerDocument;
-		    var div = doc.createElement('div');
-		    div.innerHTML = html;
-		    template.content.appendChild(div);
-		    while (element.firstChild) {
-		        element.removeChild(element.firstChild);
+		    var fragment = doc.createDocumentFragment();
+		    while (element.content.firstChild || element.firstChild) {
+		    	if(element.firstChild)
+		    		fragment.appendChild(element.firstChild)
+		    	else 
+		    		if(element.content.firstChild)
+			    		fragment.appendChild(element.content.firstChild);
+		        
 		    }
-		    element.appendChild(Polymer.Base.instanceTemplate(template));
+		    template.content.appendChild(fragment);
+		    element.content.appendChild(Polymer.Base.instanceTemplate(template));
+
 		    element.fire('dom-change');
 		},
 		
