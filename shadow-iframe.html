@@ -1,6 +1,6 @@
-<dom-module id="shadow-iframe">  
+<dom-module id="shadow-iframe">
 	<style>
-		
+
 		paper-spinner {
 			margin : 300px 100px 100px;
 			height : 25px;
@@ -10,7 +10,7 @@
 		#viewPort {
 			padding : 5px 5px 5px 10px;
 		}
-		
+
 		#backdrop {
 			background : white;
 			opacity  : .7;
@@ -32,9 +32,9 @@
 			on-response="urlLoaded"
 			on-error="urlLoadedError"
 			debounce-duration="300"
-			
+
 			params="{{ urlParams }}"
-			
+
 			last-error="{{ lastError }}"
 			verbose=true
 		></iron-ajax>
@@ -64,8 +64,8 @@
 			urlParams : {
 				type : Object
 			},
-			
-			content : { 
+
+			content : {
 				type : Object,
 				value : "",
 				notify : true,
@@ -73,7 +73,7 @@
 			},
 			hijackForm : {
 				type : Boolean
-			},			
+			},
 			hideSubmit : {
 				type : Boolean
 			},
@@ -92,7 +92,7 @@
 				type : Object,
 				value : "",
 				notify : true
-			},			
+			},
 			contentType : {
 				type : String,
 				value : "application/x-www-form-urlencoded",
@@ -103,15 +103,15 @@
 				value : []
 			}
 		},
-		
+
 		ready : function() {
 			this.submitters = [];
 
 			var that = this;
- 
+
  			this._firstTime = 0;
  			this._unchanged = false;
- 			
+
  			"mousedown,mouseup,keydown,keyup,click".split(',')
  			    .forEach(function(evType)
  			    {
@@ -119,7 +119,7 @@
 						var f = Polymer.dom(that.root).querySelector('form');
 						if(!f)
 							return;
-						
+
  			     		if(e.type != "change" && that._firstTime == 0)
  			     		{
  			     			that._formChanged = urlEncodeForm(f);
@@ -133,21 +133,21 @@
  										{
  											that.fire('unchange');
  											that._unchanged = true;
- 										} 										
+ 										}
  									}
  								else
  									{
  										that._unchanged = false;
  										that.fire('formchange');
- 									}	
+ 									}
  					});
  			    });
 		},
-		
+
 		/*ready : function() {
 			this.addEventListener('keyup', function(ev) {
 				var k = ev.keyCode || ev.which;
-				
+
 				if(k == 8 || k == 13)
 				{
 					ev.stopImmediatePropagation();
@@ -156,38 +156,49 @@
 				}
 			});
 		},*/
-		
+
+		formChecker: function(){
+			var validators = this.querySelectorAll('ir-input-validator');
+			var valid = true;
+			validators.forEach(function(el, i) {
+				if(!el.isValid) valid = false;
+			});
+			if(!valid) return this.prevent = true;
+
+			this.fire("toast", 'Invalid Form');
+		},
+
 		_urlChanged : function() {
 			if(!this.url)
 				this.content = "";
 			else
 			{
-				this.$.contentLoader.generateRequest(); 
+				this.$.contentLoader.generateRequest();
 				this.setDisplayMode('waiting');
 			}
 		},
-		
+
 		navigate : function(url) {
 			if(url == this.url)
 				this.url = "";
 
 			this.set('url', url);
 		},
-		
+
 		_contentChanged : function() {
 			var that = this;
 			this._firstTime = 0;
 			this._unchanged = false;
-			
+
 			this.async(function() { // be a little more graceful to disconnected observers
 				this.$.viewPort.innerHTML = this.content;
-				
+
 				Polymer.dom.flush();
 				this.async(function() {
 					this.form = Polymer.dom(this.root).querySelector("form");
-								
+
 					var submitters = Polymer.dom(this.root).querySelectorAll("[type='submit']")
-					
+
 					if(this.hideSubmit || this.hijackForm)
 						submitters.forEach(function(el) {
 							if(el.__bound) return;
@@ -198,7 +209,7 @@
 							if(this.hijackForm)
 								el.addEventListener('click', function(ev) { that.onSubmit(ev); });
 						}.bind(this));
-										
+
 					if(this.form)
 					{
 						var s = document.createElement('button');
@@ -207,11 +218,11 @@
 						s.addEventListener('click', function(ev) { that.onSubmit(ev); });
 						Polymer.dom(this.form).appendChild(s);
 						this.submitter = s;
-						
-						this.form.addEventListener('submit', function(ev) { 
+
+						this.form.addEventListener('submit', function(ev) {
 							if(!this.isSubmitInProgress)
 								ev.preventDefault();
-							
+
 							this.isSubmitInProgress = false;
 						});
 					}
@@ -232,6 +243,7 @@
  						this.injectBoundHTML(templates[j]);
 
 					this.fire('ready');
+
 				});
 			});
 		},
@@ -243,17 +255,17 @@
 		    while (element.content.firstChild || element.firstChild) {
 		    	if(element.firstChild)
 		    		fragment.appendChild(element.firstChild)
-		    	else 
+		    	else
 		    		if(element.content.firstChild)
 			    		fragment.appendChild(element.content.firstChild);
-		        
+
 		    }
 		    template.content.appendChild(fragment);
 		    element.content.appendChild(Polymer.Base.instanceTemplate(template));
 
 		    element.fire('dom-change');
 		},
-		
+
 		submit : function(url, method, form) {
 			if(this.isSubmitInProgress)
 				return;
@@ -265,7 +277,7 @@
 
 			if(url && this._form)
 				this._form.action = url;
-				
+
 			this.isSubmitInProgress = true; // extra safety against duplicate submissions
 			this.httpMethod = method;
 
@@ -274,13 +286,16 @@
 			else
 				this.onSubmit();
 		},
-		
+
 		onSubmitterClick : function(ev) {
 			ev.detail.preventDefault(); // remember this is a wrapped event
 		},
 
 		onSubmit : function(ev) {
-			var prevent = false, evObj;
+			this.prevent = false;
+			var evObj;
+
+			this.formChecker();
 
 			if(!this._form)
 				this._form = this.form;
@@ -293,68 +308,70 @@
 					ev.preventDefault();
 					return false;
 				};
-			}
+			};
+
+			if(this.prevent)
+				return;
 
 			evDetailObj = {
 				form : this._form,
-				preventDefault : function() { 
+				preventDefault : function() {
 					prevent = true;
 				},
 				submitUrl : this._form.action,
 				originalEvent : ev
 			};
-			
+
 			this._evDetailObj = evDetailObj;
-			
+
 			this.fire('submit', evDetailObj);
 
-			if(prevent)
-				return;
+
 
 			this.$.formSubmitter.body = urlEncodeForm(this._form);
 			this.$.formSubmitter.url = evDetailObj.submitUrl;
-			
+
 			if(this.httpMethod)
 				this.$.formSubmitter.method = this.httpMethod.toUpperCase();
 			else
 				this.$.formSubmitter.method = "POST";
-			
+
 			this.$.formSubmitter.generateRequest();
 
 			this.setDisplayMode('waiting');
-			
-			console.log('submitting form'); 
+
+			console.log('submitting form');
 		},
-		
+
 		formSubmitted : function() {
 			var parser, path, pre;
-			
+
 			parser = document.createElement('a'); // a brilliant method from https://gist.github.com/jlong/2428561
 			parser.href = this._form.action;
-			path = parser.pathname; 
+			path = parser.pathname;
 
 			this.isSubmitInProgress = false;
 			this.httpMethod = null;
 			this.fire('submit-complete', this.lastFormResponse);
-			
+
 			this._evDetailObj.response = this.lastFormResponse;
-			
+
 			this.fire('submit-complete-routing', this._evDetailObj);
-			
+
 			for(i = 0; i < this.routes.length; i++)
 			{
 				pre = new RegExp(this.routes[i].from);
 				if(pre.test(path))
 					this.navigate(path.replace(pre, this.routes[i].to));
 			}
-			
+
 			this._evDetailObj = null;
 
 			this.setDisplayMode('ready');
 
 			this._form = null;
 		},
-		
+
 		formSubmitError : function(ev) {
 			this.lastError.status = ev.target.lastRequest.xhr.status;
 			this.isSubmitInProgress = false;
@@ -364,20 +381,20 @@
 				this.$.formSubmitter.generateRequest();
 			}.bind(this)});
 		},
-		
+
 		urlLoadedError : function(ev) {
 			//this.content = "<pre>" + this.lastError.error + "</pre>";
-						
+
 			this.lastError.status = ev.target.lastRequest.xhr.status;
 
 			this.fire('iframe-error', { error : this.lastError, retry : function() {
 				this.$.contentLoader.generateRequest();
 			}.bind(this)});
-			
+
 			this.fire("error");
 			this.setDisplayMode('ready');
 		},
-		
+
 		urlLoaded : function(ev) {
 			this.fire('loaded');
 			this.setDisplayMode('ready');
@@ -385,7 +402,7 @@
 			//this.content = "";
 			this.set('content',  ev.detail.response);
 		},
-		
+
 		setDisplayMode : function(mode) {
 			this.mode = mode;
 			this.$.spinner.active = mode == 'waiting';
@@ -393,7 +410,7 @@
 			//this.$.viewPort.style.visibility = this.$.spinner.active ? 'none' : 'block';
 		},
 	});
-	
+
 	function urlEncodeForm(form) {
 		var i = -1, res = [];
 		while(++i < form.length)
@@ -403,4 +420,3 @@
 		return res.join("&");
 	}
 </script>
-
