@@ -161,7 +161,11 @@
 			var validators = this.querySelectorAll('ir-input-validator');
 			var valid = true;
 			validators.forEach(function(el, i) {
-				if(!el.isValid) valid = false;
+				el.validate();
+				if(!el.isValid){
+					valid = false;
+					el.hidden = false;
+				}
 			});
 			if(!valid) return this.prevent = true;
 
