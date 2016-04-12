@@ -159,17 +159,20 @@
 
 		formChecker: function(){
 			var validators = this.querySelectorAll('ir-input-validator');
-			var valid = true;
-			validators.forEach(function(el, i) {
-				el.validate();
-				if(!el.isValid){
-					valid = false;
-					el.hidden = false;
-				}
-			});
-			if(!valid) return this.prevent = true;
+			if(validators){
+                var valid = true;
+                validators.forEach(function(el, i) {
+                    el.validate();
+                    if(!el.isValid){
+                        valid = false;
+                        el.hidden = false;
+                    }
+                });
+                if(!valid) return this.prevent = true;
 
-			this.fire("toast", 'Invalid Form');
+                this.fire("toast", 'Invalid Form');
+			}
+
 		},
 
 		_urlChanged : function() {
