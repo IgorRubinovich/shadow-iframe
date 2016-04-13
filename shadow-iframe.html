@@ -159,7 +159,7 @@
 
 		formChecker: function(){
 			var validators = this.querySelectorAll('ir-input-validator');
-			if(validators){
+			if(validators && validators.length > 0){
                 var valid = true;
                 validators.forEach(function(el, i) {
                     el.validate();
