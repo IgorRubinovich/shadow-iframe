@@ -77,6 +77,11 @@
 			hideSubmit : {
 				type : Boolean
 			},
+			submitUrl : {
+				type : String,
+				value : "",
+				notify: true
+			},
 			url : {
 				type : String,
 				value : null,
@@ -336,7 +341,10 @@
 
 
 			this.$.formSubmitter.body = urlEncodeForm(this._form);
-			this.$.formSubmitter.url = evDetailObj.submitUrl;
+			if(this.submitUrl.length > 0)
+				this.$.formSubmitter.url = this.submitUrl;
+			else
+				this.$.formSubmitter.url = evDetailObj.submitUrl;
 
 			if(this.httpMethod)
 				this.$.formSubmitter.method = this.httpMethod.toUpperCase();
