@@ -275,7 +275,8 @@
 		    template.content.appendChild(fragment);
 		    element.content.appendChild(Polymer.Base.instanceTemplate(template));
 
-		    element.fire('dom-change');
+		    if(element.fire)
+		    	element.fire('dom-change');
 		},
 
 		submit : function(url, method, form) {
