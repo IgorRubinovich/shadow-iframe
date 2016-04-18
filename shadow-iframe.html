@@ -430,7 +430,9 @@
 	function urlEncodeForm(form) {
 		var i = -1, res = [];
 		while(++i < form.length)
-			if(form[i].name)
+			if(form[i].type == "checkbox")
+				res.push(form[i].name + "=" + encodeURIComponent(form[i].checked));
+			else if (form[i].name)
 				res.push(form[i].name + "=" + encodeURIComponent(form[i].value));
 
 		return res.join("&");
