@@ -163,7 +163,9 @@
 		},*/
 
 		formChecker: function(){
+			var that = this;
 			var validators = this.querySelectorAll('ir-input-validator');
+            validators = Array.prototype.filter.call(validators, function(el) { return el != that });
 			if(validators && validators.length > 0){
                 var valid = true;
                 validators.forEach(function(el, i) {
