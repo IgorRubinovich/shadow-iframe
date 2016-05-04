@@ -24,6 +24,9 @@
 			<paper-spinner id="spinner"></paper-spinner>
 		</div>
 
+		<paper-dialog id="redirectDialog" auto-fit-on-attach>
+		</paper-dialog>
+
 		<!-- Partial loader last-response="{{ content }}" -->
 		<iron-ajax
 			url="{{ url }}"
@@ -307,6 +310,8 @@
 		},
 
 		onSubmit : function(ev) {
+			var button = ev.currentTarget;
+
 			this.prevent = false;
 			var evObj;
 
@@ -336,6 +341,12 @@
 				submitUrl : this._form.action,
 				originalEvent : ev
 			};
+
+			if(button.hasAttribute('redirect-to-dialog'))
+			{
+				evDetailObj.submitUrl = button.getAttribute('submit-url');
+				this._isRedirect = true;
+			}				
 
 			this._evDetailObj = evDetailObj;
 
@@ -376,12 +387,26 @@
 
 			this.fire('submit-complete-routing', this._evDetailObj);
 
-			for(i = 0; i < this.routes.length; i++)
-			{
-				pre = new RegExp(this.routes[i].from);
-				if(pre.test(path))
-					this.navigate(path.replace(pre, this.routes[i].to));
-			}
+			if(this._isRedirect)
+				{
+					var iframe = document.createElement('shadow-iframe');
+					iframe.url = '/classifieds/partial/preview';
+					iframe.addEventListener('ready', function() {
+						this.$.redirectDialog.center();
+					}.bind(this));
+					this.$.redirectDialog.innerHTML = "";
+					this.$.redirectDialog.appendChild(iframe);
+					this.$.redirectDialog.open();
+
+					this._isRedirect = false;
+				}
+			else
+				for(i = 0; i < this.routes.length; i++)
+				{
+					pre = new RegExp(this.routes[i].from);
+					if(pre.test(path))
+						this.navigate(path.replace(pre, this.routes[i].to));
+				}
 
 			this._evDetailObj = null;
 
