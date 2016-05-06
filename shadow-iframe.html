@@ -16,6 +16,10 @@
 			opacity  : .7;
 			transition : .2s;
 		}
+
+		#redirectDialog {
+			overflow: auto;
+		}
 	</style>
 	<template>
 		<div id="viewPort">
@@ -271,7 +275,7 @@
 		    var fragment = doc.createDocumentFragment();
 		    while (element.content.firstChild || element.firstChild) {
 		    	if(element.firstChild)
-		    		fragment.appendChild(element.firstChild)
+		    		fragment.appendChild(element.firstChild);
 		    	else
 		    		if(element.content.firstChild)
 			    		fragment.appendChild(element.content.firstChild);
@@ -310,8 +314,7 @@
 		},
 
 		onSubmit : function(ev) {
-			var button = ev.currentTarget;
-
+			var button;
 			this.prevent = false;
 			var evObj;
 
@@ -322,6 +325,7 @@
 
 			if(ev)
 			{
+				button = ev.currentTarget;
 				ev.preventDefault();
 
 				if(ev.keyCode == 13) {
@@ -342,17 +346,30 @@
 				originalEvent : ev
 			};
 
-			if(button.hasAttribute('redirect-to-dialog'))
+			if(button && button.hasAttribute('redirect-to-dialog'))
 			{
-				evDetailObj.submitUrl = button.getAttribute('submit-url');
-				this._isRedirect = true;
+				var redirectUrl = button.getAttribute('submit-url');
+				var iframe = document.createElement('shadow-iframe');
+				iframe.addEventListener('ready', function() {
+					iframe.form = this.form;
+					iframe.submitUrl = redirectUrl;
+					iframe.submit();
+				}.bind(this));
+
+				iframe.addEventListener('submit-complete', function() {
+					this.$.redirectDialog.center();
+				}.bind(this));
+
+				this.$.redirectDialog.innerHTML = "";
+				this.$.redirectDialog.appendChild(iframe);
+				this.$.redirectDialog.open();
+
+				return;
 			}				
 
 			this._evDetailObj = evDetailObj;
 
 			this.fire('submit', evDetailObj);
-
-
 
 			this.$.formSubmitter.body = urlEncodeForm(this._form);
 			if(this.submitUrl.length > 0)
@@ -372,8 +389,8 @@
 			console.log('submitting form');
 		},
 
-		formSubmitted : function() {
-			var parser, path, pre;
+		formSubmitted : function(ev) {
+			var parser, path, pre, isNavigated;
 
 			parser = document.createElement('a'); // a brilliant method from https://gist.github.com/jlong/2428561
 			parser.href = this._form.action;
@@ -387,26 +404,18 @@
 
 			this.fire('submit-complete-routing', this._evDetailObj);
 
-			if(this._isRedirect)
+			for(i = 0; i < this.routes.length; i++)
+			{
+				pre = new RegExp(this.routes[i].from);
+				if(pre.test(path))
 				{
-					var iframe = document.createElement('shadow-iframe');
-					iframe.url = '/classifieds/partial/preview';
-					iframe.addEventListener('ready', function() {
-						this.$.redirectDialog.center();
-					}.bind(this));
-					this.$.redirectDialog.innerHTML = "";
-					this.$.redirectDialog.appendChild(iframe);
-					this.$.redirectDialog.open();
+					isNavigated = true;
+					this.navigate(path.replace(pre, this.routes[i].to));
+				}
+			}
 
-					this._isRedirect = false;
-				}
-			else
-				for(i = 0; i < this.routes.length; i++)
-				{
-					pre = new RegExp(this.routes[i].from);
-					if(pre.test(path))
-						this.navigate(path.replace(pre, this.routes[i].to));
-				}
+			if(!isNavigated && this.lastFormResponse)
+				this.content = this.lastFormResponse;
 
 			this._evDetailObj = null;
 
