@@ -18,6 +18,12 @@
 		}
 
 		#redirectDialog {
+			display: flex;
+			flex-direction: column;
+		}
+		#dialogContent {
+			display: flex;
+			flex: 1;
 			overflow: auto;
 		}
 	</style>
@@ -28,7 +34,12 @@
 			<paper-spinner id="spinner"></paper-spinner>
 		</div>
 
-		<paper-dialog id="redirectDialog" auto-fit-on-attach>
+		<paper-dialog id="redirectDialog">
+			<div id="dialogContent">
+			</div>
+			<div class="buttons">
+				<paper-icon-button icon="cancel" dialog-dismiss></paper-icon-button>
+			</div>
 		</paper-dialog>
 
 		<!-- Partial loader last-response="{{ content }}" -->
@@ -357,12 +368,16 @@
 				}.bind(this));
 
 				iframe.addEventListener('submit-complete', function() {
-					this.$.redirectDialog.center();
+					//this.$.redirectDialog.center();
+					this.$.redirectDialog.notifyResize();
+					this.$.redirectDialog.open();
+					this.$.redirectDialog.addEventListener('iron-overlay-opened', function(ev) {
+						this.$.redirectDialog.style.zIndex = ev.target.style.zIndex;
+					}.bind(this));
 				}.bind(this));
 
-				this.$.redirectDialog.innerHTML = "";
-				this.$.redirectDialog.appendChild(iframe);
-				this.$.redirectDialog.open();
+				this.$.dialogContent.innerHTML = "";
+				this.$.dialogContent.appendChild(iframe);
 
 				return;
 			}				
