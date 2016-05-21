@@ -124,6 +124,10 @@
 			routes : {
 				type : Array,
 				value : []
+			},
+			isSubmitEnds : {
+				type : Boolean,
+				value : true
 			}
 		},
 
@@ -134,6 +138,8 @@
 
  			this._firstTime = 0;
  			this._unchanged = false;
+
+			window.onbeforeunload = null;
 
  			"mousedown,mouseup,keydown,keyup,click".split(',')
  			    .forEach(function(evType)
@@ -154,12 +160,14 @@
  									{
  										if(!that._unchanged)
  										{
+											window.onbeforeunload = null;
  											that.fire('unchange');
  											that._unchanged = true;
  										}
  									}
  								else
  									{
+										window.onbeforeunload = that.confirmExiting;
  										that._unchanged = false;
  										that.fire('formchange');
  									}
@@ -179,6 +187,19 @@
 				}
 			});
 		},*/
+
+		confirmExiting : function(e) {
+			e = e || window.event;
+
+			var message = "Сделаные Вами изменения будут отменены, если вы уйдете с этой страницы.";
+
+			if(e)
+			{
+				e.returnValue = message;
+			}
+
+			return message;
+		},
 
 		formChecker: function(){
 			var that = this;
@@ -205,6 +226,14 @@
 				this.content = "";
 			else
 			{
+				if(window.onbeforeunload && this.isSubmitEnds)
+				{
+					var ask = confirm("Сделаные Вами изменения будут отменены, если вы уйдете с этой страницы. Вы действительно хотите уйти с этой страницы?");
+					if(ask == false)
+						return;
+					else
+						window.onbeforeunload = null;
+				}
 				this.$.contentLoader.generateRequest();
 				this.setDisplayMode('waiting');
 			}
@@ -329,6 +358,9 @@
 			this.prevent = false;
 			var evObj;
 
+			window.onbeforeunload = null;
+			this.isSubmitEnds = false;
+
 			this.formChecker();
 
 			if(!this._form)
@@ -433,6 +465,9 @@
 				this.content = this.lastFormResponse;
 
 			this._evDetailObj = null;
+
+			window.onbeforeunload = null;
+			this.isSubmitEnds = true;
 
 			this.setDisplayMode('ready');
 
