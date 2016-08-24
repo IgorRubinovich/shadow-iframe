@@ -247,66 +247,73 @@
 		},
 
 		_contentChanged : function() {
-			var that = this;
+
 			this._firstTime = 0;
 			this._unchanged = false;
 
 			this.async(function() { // be a little more graceful to disconnected observers
+				this.$.viewPort.addEventListener("dom-change", this._viewPortChanged.bind(this) );
 				this.$.viewPort.innerHTML = this.content;
-
 				Polymer.dom.flush();
-				this.async(function() {
-					this.form = Polymer.dom(this.root).querySelector("form");
-
-					var submitters = Polymer.dom(this.root).querySelectorAll("[type='submit']")
-
-					if(this.hideSubmit || this.hijackForm)
-						submitters.forEach(function(el) {
-							if(el.__bound) return;
-							el.__bound = true;
-
-							if(this.hideSubmit)
-								el.style.visibility = 'hidden';
-							if(this.hijackForm)
-								el.addEventListener('click', function(ev) { that.onSubmit(ev); });
-						}.bind(this));
-
-					if(this.form)
-					{
-						var s = document.createElement('button');
-						s.type = "submit";
-						s.style.display = "none";
-						s.addEventListener('click', function(ev) { that.onSubmit(ev); });
-						Polymer.dom(this.form).appendChild(s);
-						this.submitter = s;
-
-						this.form.addEventListener('submit', function(ev) {
-							if(!this.isSubmitInProgress)
-								ev.preventDefault();
-
-							this.isSubmitInProgress = false;
-						});
-					}
-
-					var scripts = this.$.viewPort.querySelectorAll('script');
- 					for (var i=0; i<scripts.length; i++)
- 					{
- 						if (scripts[i].nodeName != 'SCRIPT')
- 					    	throw new Error("swapScript requires script");
- 					    var clone = document.createElement('script');
- 					  	clone.appendChild( document.createTextNode(scripts[i].textContent));
- 					 	scripts[i].parentNode.insertBefore(clone, scripts[i]);
- 					  	scripts[i].parentNode.removeChild(scripts[i]);
- 					}
-
- 					var templates = Polymer.dom(this.$.viewPort).querySelectorAll('template');
- 					for(var j = 0; j < templates.length; j++)
- 						this.injectBoundHTML(templates[j]);
-
-					this.fire('ready');
-
-				});
 			});
+		},
+		_viewPortChanged : function(event) {
+			
+			this.cancelDebouncer('dom-object-insert');
+			this.debounce('dom-object-insert', function() {
+			
+			var viewPort = this.$.viewPort;
+			
+			this.form = Polymer.dom(this.root).querySelector("form");
+			var submitters = Polymer.dom(this.root).querySelectorAll("[type='submit']")
+
+			if(this.hideSubmit || this.hijackForm)
+				submitters.forEach(function(el) {
+					if(el.__bound) return;
+					el.__bound = true;
+
+					if(this.hideSubmit)
+						el.style.visibility = 'hidden';
+					if(this.hijackForm)
+						el.addEventListener('click', function(ev) { this.onSubmit(ev); }.bind(this) );
+				}.bind(this));
+
+			if(this.form)
+			{
+				var s = document.createElement('button');
+				s.type = "submit";
+				s.style.display = "none";
+				s.addEventListener('click', function(ev) { this.onSubmit(ev); }.bind(this));
+				Polymer.dom(this.form).appendChild(s);
+				this.submitter = s;
+
+				this.form.addEventListener('submit', function(ev) {
+					if(!this.isSubmitInProgress)
+						ev.preventDefault();
+					this.isSubmitInProgress = false;
+				});
+			}
+
+			var scripts = viewPort.querySelectorAll('script');
+				for (var i=0; i<scripts.length; i++)
+				{
+					if (scripts[i].nodeName != 'SCRIPT')
+				    	throw new Error("swapScript requires script");
+				    var clone = document.createElement('script');
+				  	clone.appendChild( document.createTextNode(scripts[i].textContent));
+				 	scripts[i].parentNode.insertBefore(clone, scripts[i]);
+				  	scripts[i].parentNode.removeChild(scripts[i]);
+				}
+
+				var templates = Polymer.dom(viewPort).querySelectorAll('template');
+				for(var j = 0; j < templates.length; j++)
+					this.injectBoundHTML(templates[j]);
+
+			viewPort.removeEventListener("dom-change", this._viewPortChanged);
+
+			this.fire('ready');
+
+			}, 250);
 		},
 
 		injectBoundHTML : function(element) {
@@ -329,6 +336,9 @@
 		},
 
 		submit : function(url, method, form) {
+
+			console.log("submit!");
+
 			if(this.isSubmitInProgress)
 				return;
 
@@ -354,6 +364,9 @@
 		},
 
 		onSubmit : function(ev) {
+
+			console.log("onSubmit!");
+
 			var button;
 			this.prevent = false;
 			var evObj;
@@ -438,6 +451,8 @@
 
 		formSubmitted : function(ev) {
 			var parser, path, pre, isNavigated;
+
+			console.log("formSubmitted!");
 
 			parser = document.createElement('a'); // a brilliant method from https://gist.github.com/jlong/2428561
 			parser.href = this._form.action;
