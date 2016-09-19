@@ -76,7 +76,7 @@
 </dom-module>
 
 <script>
-	Polymer({
+	ShadowIframe = Polymer({
 		is : 'shadow-iframe',
 		properties : {
 			urlParams : {
@@ -132,6 +132,7 @@
 		},
 
 		ready : function() {
+
 			this.submitters = [];
 
 			var that = this;
@@ -262,10 +263,12 @@
 			this.cancelDebouncer('dom-object-insert');
 			this.debounce('dom-object-insert', function() {
 			
+			debugger;
+
 			var viewPort = this.$.viewPort;
 			
-			this.form = Polymer.dom(this.root).querySelector("form");
-			var submitters = Polymer.dom(this.root).querySelectorAll("[type='submit']")
+			this.form = viewPort.querySelector("form");
+			var submitters = viewPort.querySelectorAll("[type='submit']")
 
 			if(this.hideSubmit || this.hijackForm)
 				submitters.forEach(function(el) {
@@ -288,6 +291,9 @@
 				this.submitter = s;
 
 				this.form.addEventListener('submit', function(ev) {
+
+					debugger;
+
 					if(!this.isSubmitInProgress)
 						ev.preventDefault();
 					this.isSubmitInProgress = false;
@@ -406,11 +412,6 @@
 			{
 				var redirectUrl = button.getAttribute('submit-url');
 				var iframe = document.createElement('shadow-iframe');
-				iframe.addEventListener('ready', function() {
-					iframe.form = this.form;
-					iframe.submitUrl = redirectUrl;
-					iframe.submit();
-				}.bind(this));
 
 				iframe.addEventListener('submit-complete', function() {
 					//this.$.redirectDialog.center();
@@ -422,7 +423,13 @@
 				}.bind(this));
 
 				this.$.dialogContent.innerHTML = "";
-				this.$.dialogContent.appendChild(iframe);
+
+				Polymer.dom(this.$.dialogContent).appendChild(iframe);
+				Polymer.dom.flush();				
+
+				iframe.form = this.form;
+				iframe.submitUrl = redirectUrl;
+				iframe.submit();
 
 				return;
 			}				
