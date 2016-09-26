@@ -252,19 +252,19 @@
 			this._firstTime = 0;
 			this._unchanged = false;
 
-			this.async(function() { // be a little more graceful to disconnected observers
-				this.$.viewPort.addEventListener("dom-change", this._viewPortChanged.bind(this) );
-				this.$.viewPort.innerHTML = this.content;
-				Polymer.dom.flush();
-			});
+			// this is hopefully a relic to be removed. this.async(function() { // be a little more graceful to disconnected observers
+
+			this.$.viewPort.addEventListener("dom-change", this._viewPortChanged.bind(this) );
+			this.$.viewPort.innerHTML = this.content;
+			this._viewPortChanged(); // we do this twice so that complex templates can force an update with "dom-change"
+			
+			Polymer.dom.flush();
 		},
 		_viewPortChanged : function(event) {
 			
 			this.cancelDebouncer('dom-object-insert');
 			this.debounce('dom-object-insert', function() {
 			
-			debugger;
-
 			var viewPort = this.$.viewPort;
 			
 			this.form = viewPort.querySelector("form");
