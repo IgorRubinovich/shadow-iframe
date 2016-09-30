@@ -235,8 +235,13 @@
 					else
 						window.onbeforeunload = null;
 				}
-				this.$.contentLoader.generateRequest();
 				this.setDisplayMode('waiting');
+				
+				this.cancelDebouncer("view-port-changed");
+				this.$.viewPort.removeEventListener("dom-change", this._domChangeListener);
+				this._domChangeListener = null;
+				console.log('generated request')
+				this.$.contentLoader.generateRequest();
 			}
 		},
 
@@ -248,7 +253,6 @@
 		},
 
 		_contentChanged : function() {
-
 			this._firstTime = 0;
 			this._unchanged = false;
 
