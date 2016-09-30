@@ -1,0 +1,13 @@
+{
+  "name": "shadow-iframe",
+  "homepage": "https://github.com/IgorRubinovich/shadow-iframe",
+  "_release": "e6e6e4943c",
+  "_resolution": {
+    "type": "branch",
+    "branch": "master",
+    "commit": "e6e6e4943c1e2598d27e6e14fe33d034cd22fdb0"
+  },
+  "_source": "https://github.com/IgorRubinovich/shadow-iframe.git",
+  "_target": "*",
+  "_originalSource": "https://github.com/IgorRubinovich/shadow-iframe.git"
+}

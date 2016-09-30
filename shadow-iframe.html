@@ -254,16 +254,23 @@
 
 			// this is hopefully a relic to be removed. this.async(function() { // be a little more graceful to disconnected observers
 
-			this.$.viewPort.addEventListener("dom-change", this._viewPortChanged.bind(this) );
 			this.$.viewPort.innerHTML = this.content;
-			this._viewPortChanged(); // we do this twice so that complex templates can force an update with "dom-change"
+			
+			if(!this._domChangeListener) { 
+				this._domChangeListener = this._viewPortChangedDebounced.bind(this);
+				this.$.viewPort.addEventListener("dom-change", this._domChangeListener);
+			}
+			this._viewPortChangedDebounced(); // we do this twice (second time from dom-change) so that complex templates can force an update with "dom-change"
 			
 			Polymer.dom.flush();
 		},
+		_viewPortChangedDebounced : function(event) {
+			this.cancelDebouncer("view-port-changed");
+			this.debounce("view-port-changed", this._viewPortChanged.bind(this, event), 250);
+		},
 		_viewPortChanged : function(event) {
-			
-			this.cancelDebouncer('dom-object-insert');
-			this.debounce('dom-object-insert', function() {
+			this.$.viewPort.removeEventListener("dom-change", this._domChangeListener);
+			this._domChangeListener = null;
 			
 			var viewPort = this.$.viewPort;
 			
@@ -315,11 +322,9 @@
 				for(var j = 0; j < templates.length; j++)
 					this.injectBoundHTML(templates[j]);
 
-			viewPort.removeEventListener("dom-change", this._viewPortChanged);
+			//viewPort.removeEventListener("dom-change", this._viewPortChanged);
 
 			this.fire('ready');
-
-			}, 250);
 		},
 
 		injectBoundHTML : function(element) {
