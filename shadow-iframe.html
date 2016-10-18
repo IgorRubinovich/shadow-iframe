@@ -28,8 +28,11 @@
 		}
 	</style>
 	<template>
-		<div id="viewPort">
-		</div>
+	
+		<div id="viewPortWrapper">
+			<div id="viewPort">
+			</div>
+			</div>
 		<div id="backdrop" class="fit center">
 			<paper-spinner id="spinner"></paper-spinner>
 		</div>
@@ -140,10 +143,6 @@
  			this._firstTime = 0;
  			this._unchanged = false;
 
-			this._contentObserver =
-				Polymer.dom(this.$.content).observeNodes(this.contentObserverCallback.bind(this));
-			
-			
 			window.onbeforeunload = null;
 
  			"mousedown,mouseup,keydown,keyup,click".split(',')
@@ -259,12 +258,15 @@
 		_contentChanged : function() {
 			this._firstTime = 0;
 			this._unchanged = false;
-
-			this._contentObserverOn = true;
+			
+			console.log('content changed');
+			
+			this._contentObserver =
+				Polymer.dom(this.$.viewPort).observeNodes(this.contentObserverCallback.bind(this));
 			
 			// this is hopefully a relic to be removed. this.async(function() { // be a little more graceful to disconnected observers
 
-			this.$.viewPort.innerHTML = this.content;
+			Polymer.dom(this.$.viewPort).innerHTML = this.content;
 			
 			if(!this._domChangeListener) { 
 				this._domChangeListener = this._viewPortChangedDebounced.bind(this);
@@ -277,14 +279,11 @@
 
 		
 		contentObserverCallback : function(info) {
-			if(!this._contentObserverOn)
-				return;
-
 			this.cancelDebouncer("content-dom-changed");
 			this.debounce("content-dom-changed", this.contentObserverCallbackDebounced.bind(this, event), 250);
 		},
 		contentObserverCallbackDebounced : function() {
-			this._contentObserverOn = false;
+			Polymer.dom(this.$.viewPort).unobserveNodes(this._contentObserver);
 			this.fire('rendered');
 			console.log('rendered')
 		},
@@ -323,9 +322,6 @@
 				this.submitter = s;
 
 				this.form.addEventListener('submit', function(ev) {
-
-					debugger;
-
 					if(!this.isSubmitInProgress)
 						ev.preventDefault();
 					this.isSubmitInProgress = false;
