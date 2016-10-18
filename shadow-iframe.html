@@ -140,6 +140,10 @@
  			this._firstTime = 0;
  			this._unchanged = false;
 
+			this._contentObserver =
+				Polymer.dom(this.$.content).observeNodes(this.contentObserverCallback.bind(this));
+			
+			
 			window.onbeforeunload = null;
 
  			"mousedown,mouseup,keydown,keyup,click".split(',')
@@ -256,6 +260,8 @@
 			this._firstTime = 0;
 			this._unchanged = false;
 
+			this._contentObserverOn = true;
+			
 			// this is hopefully a relic to be removed. this.async(function() { // be a little more graceful to disconnected observers
 
 			this.$.viewPort.innerHTML = this.content;
@@ -268,6 +274,21 @@
 			
 			Polymer.dom.flush();
 		},
+
+		
+		contentObserverCallback : function(info) {
+			if(!this._contentObserverOn)
+				return;
+
+			this.cancelDebouncer("content-dom-changed");
+			this.debounce("content-dom-changed", this.contentObserverCallbackDebounced.bind(this, event), 250);
+		},
+		contentObserverCallbackDebounced : function() {
+			this._contentObserverOn = false;
+			this.fire('rendered');
+			console.log('rendered')
+		},
+
 		_viewPortChangedDebounced : function(event) {
 			this.cancelDebouncer("view-port-changed");
 			this.debounce("view-port-changed", this._viewPortChanged.bind(this, event), 250);
@@ -330,6 +351,7 @@
 
 			this.fire('ready');
 		},
+
 
 		injectBoundHTML : function(element) {
 		    var template = element.cloneNode(false);
