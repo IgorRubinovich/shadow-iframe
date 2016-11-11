@@ -160,6 +160,18 @@
  			    .forEach(function(evType)
  			    {
  			     	that.addEventListener(evType, function(e){
+
+						if(e.type == "click" && e.target.tagName == 'A'){
+							if(e.target.hasAttribute('open-to-dialog'))
+							{
+								e.preventDefault();
+								e.stopPropagation();
+
+								var dialogUrl = e.target.getAttribute('href');
+								this.navigateToDialog(dialogUrl);
+							}
+						}
+
 						var f = Polymer.dom(that.root).querySelector('form');
 						if(!f)
 							return;
@@ -193,6 +205,8 @@
 		attached : function() {
 			this.set("viewPort", this.$.viewPort); 
 		},
+
+
 
 		/*ready : function() {
 			this.addEventListener('keyup', function(ev) {
@@ -261,6 +275,25 @@
 				console.log('generated request')
 				this.$.contentLoader.generateRequest();
 			}
+		},
+
+		navigateToDialog: function(url){
+			var iframe = document.createElement('shadow-iframe');
+			this.$.dialogContent.innerHTML = "";
+
+			Polymer.dom(this.$.dialogContent).appendChild(iframe);
+			Polymer.dom.flush();
+
+			iframe.addEventListener('rendered', function() {
+				this.$.redirectDialog.center();
+				this.$.redirectDialog.notifyResize();
+				this.$.redirectDialog.open();
+				this.$.redirectDialog.addEventListener('iron-overlay-opened', function(ev) {
+					this.$.redirectDialog.style.zIndex = ev.target.style.zIndex;
+				}.bind(this));
+			}.bind(this));
+
+			iframe.navigate(url);
 		},
 
 		navigate : function(url) {
