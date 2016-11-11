@@ -21,10 +21,13 @@
 			display: flex;
 			flex-direction: column;
 		}
-		#dialogContent {
-			display: flex;
+		#redirectDialogContent {
+			/*display: flex;
 			flex: 1;
-			overflow: auto;
+			overflow: auto;*/
+		}
+		#previewDialogButtons {
+			text-align : right;
 		}
 	</style>
 	<template>
@@ -32,15 +35,16 @@
 		<div id="viewPortWrapper">
 			<div id="viewPort">
 			</div>
-			</div>
+		</div>
 		<div id="backdrop" class="fit center">
 			<paper-spinner id="spinner"></paper-spinner>
 		</div>
 
-		<paper-dialog id="redirectDialog">
-			<div id="dialogContent">
-			</div>
-			<div class="buttons">
+		<paper-dialog id="redirectDialog" with-backdrop>
+			<div id="previewDialogHeader"></div>
+			<paper-dialog-scrollable id="redirectDialogContent">
+			</paper-dialog-scrollable>
+			<div id="previewDialogButtons">
 				<paper-icon-button icon="cancel" dialog-dismiss></paper-icon-button>
 			</div>
 		</paper-dialog>
@@ -131,7 +135,14 @@
 			isSubmitEnds : {
 				type : Boolean,
 				value : true
+			},
+			/* expose the viewPort element */
+			viewPort : {
+				type : Object,
+				value : null,
+				notify : true
 			}
+
 		},
 
 		ready : function() {
@@ -177,6 +188,10 @@
  									}
  					});
  			    });
+		},
+		
+		attached : function() {
+			this.set("viewPort", this.$.viewPort); 
 		},
 
 		/*ready : function() {
@@ -328,7 +343,8 @@
 				});
 			}
 
-			var scripts = viewPort.querySelectorAll('script');
+			// seems that using Polymer.dom(..).innerHTML had solved the scripts problem
+			var scripts = []; // experimental // viewPort.querySelectorAll('script');
 				for (var i=0; i<scripts.length; i++)
 				{
 					if (scripts[i].nodeName != 'SCRIPT')
@@ -449,9 +465,9 @@
 					}.bind(this));
 				}.bind(this));
 
-				this.$.dialogContent.innerHTML = "";
+				Polymer.dom(this.$.redirectDialogContent).innerHTML = "";
 
-				Polymer.dom(this.$.dialogContent).appendChild(iframe);
+				Polymer.dom(this.$.redirectDialogContent).appendChild(iframe);
 				Polymer.dom.flush();				
 
 				iframe.form = this.form;
