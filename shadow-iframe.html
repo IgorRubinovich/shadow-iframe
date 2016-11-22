@@ -15,6 +15,12 @@
 			background : white;
 			opacity  : .7;
 			transition : .2s;
+			position : absolute;
+			top : 0;
+			bottom : 0;
+			width : 100%;
+			height : 100%;
+			display : none;
 		}
 
 		#redirectDialog {
@@ -141,6 +147,11 @@
 				type : Object,
 				value : null,
 				notify : true
+			},
+			title : {
+				type : String,
+				value : "[untitled]",
+				notify : true
 			}
 
 		},
@@ -151,57 +162,82 @@
 
 			var that = this;
 
- 			this._firstTime = 0;
- 			this._unchanged = false;
+ 			this._firstTime = true;
+ 			this._unchanged = true;
 
-			window.onbeforeunload = null;
+ 			"keyup,click".split(',').forEach(function(evType)
+			{
+				this.addEventListener(evType, function(e) {
+					this.updateChangedState(e);
+				}.bind(this));
+			}.bind(this));
 
- 			"mousedown,mouseup,keydown,keyup,click".split(',')
- 			    .forEach(function(evType)
- 			    {
- 			     	that.addEventListener(evType, function(e){
-
-						if(e.type == "click" && e.target.tagName == 'A'){
-							if(e.target.hasAttribute('open-to-dialog'))
-							{
-								e.preventDefault();
-								e.stopPropagation();
-
-								var dialogUrl = e.target.getAttribute('href');
-								this.navigateToDialog(dialogUrl);
-							}
+ 			"keyup,click".split(',').forEach(function(evType) {
+				this.addEventListener(evType, function(e) {
+					if(e.target.hasAttribute('href') && e.target.hasAttribute('confirm-exit'))
+					{
+						var ce = this.confirmExit();
+						if(!ce)
+						{
+							e.stopPropagation();
+							e.preventDefault();
 						}
+					}
+					
+					if(e.target.hasAttribute('open-to-dialog'))
+					{
+						e.preventDefault();
+						e.stopPropagation();
 
-						var f = Polymer.dom(that.root).querySelector('form');
-						if(!f)
-							return;
-
- 			     		if(e.type != "change" && that._firstTime == 0)
- 			     		{
- 			     			that._formChanged = urlEncodeForm(f);
- 			     			that._firstTime = 1;
- 			     		}
- 						else
- 							if(that._firstTime == 1)
- 								if(that._formChanged == urlEncodeForm(f))
- 									{
- 										if(!that._unchanged)
- 										{
-											window.onbeforeunload = null;
- 											that.fire('unchange');
- 											that._unchanged = true;
- 										}
- 									}
- 								else
- 									{
-										window.onbeforeunload = that.confirmExiting;
- 										that._unchanged = false;
- 										that.fire('formchange');
- 									}
- 					});
- 			    });
+						var dialogUrl = e.target.getAttribute('href');
+						this.navigateToDialog(dialogUrl);								
+					}
+				}.bind(this));
+			}.bind(this));
+ 
+			if(!this.hasAttribute('ignore-form-changes'))
+			window.addEventListener('beforeunload', this._confirmExitBound = this._confirmExit.bind(this));
 		},
 		
+		detached : function() {
+			this.removeEventListener('beforeunload', this._confirmExitBound);
+		},
+		
+		updateChangedState : function(e) {
+			var f, currentFormContent;
+
+			if(this.hasAttribute('ignore-form-changes'))
+				return;
+			
+			var f = Polymer.dom(this.root).querySelector('form');
+			if(!f)
+				return this._unchanged = true;
+			
+			currentFormContent = urlEncodeForm(f)			
+			
+			if(!e) e = {};
+
+			if(this._firstTime) // e.type != "change" && 
+			{
+				this._originalFormContent = currentFormContent;
+				this._firstTime = false;
+			}
+			else
+			if(this._originalFormContent == currentFormContent)
+			{
+				if(!this._unchanged)
+				{
+					this.fire('unchange');
+					this._unchanged = true;
+				}
+			}
+			else
+			{
+				this._unchanged = false;
+				this.fire('formchange');
+			}
+		},
+	
 		attached : function() {
 			this.set("viewPort", this.$.viewPort); 
 		},
@@ -221,15 +257,25 @@
 			});
 		},*/
 
-		confirmExiting : function(e) {
+		// triggerable
+		confirmExit : function() {
+			if(this._unchanged)
+				return true;
+
+			return window.confirm("Сделаные Вами изменения будут отменены, если вы уйдете с этой страницы.");
+		},
+		
+		// beforeunload-specific
+		_confirmExit : function(e) {
 			e = e || window.event;
 
+			if(this._unchanged)
+				return;
+			
 			var message = "Сделаные Вами изменения будут отменены, если вы уйдете с этой страницы.";
 
 			if(e)
-			{
 				e.returnValue = message;
-			}
 
 			return message;
 		},
@@ -275,6 +321,8 @@
 				console.log('generated request')
 				this.$.contentLoader.generateRequest();
 			}
+			
+			this.fire('url-changed', this);
 		},
 
 		navigateToDialog: function(url){
@@ -304,17 +352,17 @@
 		},
 
 		_contentChanged : function() {
-			this._firstTime = 0;
-			this._unchanged = false;
+			this._unchanged = true;
 			
 			console.log('content changed');
 			
 			this._contentObserver =
 				Polymer.dom(this.$.viewPort).observeNodes(this.contentObserverCallback.bind(this));
 			
-			// this is hopefully a relic to be removed. this.async(function() { // be a little more graceful to disconnected observers
-
+			
+			
 			Polymer.dom(this.$.viewPort).innerHTML = this.content;
+
 			
 			if(!this._domChangeListener) { 
 				this._domChangeListener = this._viewPortChangedDebounced.bind(this);
@@ -325,6 +373,10 @@
 			Polymer.dom.flush();
 		},
 
+		setTitle : function() {
+			var titleEl = Polymer.dom(this.$.viewPort).querySelector('[title]') || Polymer.dom(this.$.viewPort).querySelector('h1');
+			this.set('title', titleEl.innerText);
+		},
 		
 		contentObserverCallback : function(info) {
 			this.cancelDebouncer("content-dom-changed");
@@ -332,7 +384,11 @@
 		},
 		contentObserverCallbackDebounced : function() {
 			Polymer.dom(this.$.viewPort).unobserveNodes(this._contentObserver);
-			this.fire('rendered');
+			
+			this.setTitle();
+			
+			this.fire('rendered'); 
+			
 			console.log('rendered')
 		},
 
@@ -446,18 +502,20 @@
 		},
 
 		onSubmit : function(ev) {
-
 			console.log("onSubmit!");
 
 			var button;
 			this.prevent = false;
 			var evObj;
 
-			window.onbeforeunload = null;
+			//window.onbeforeunload = null;
 			this.isSubmitEnds = false;
 
 			this.formChecker();
 
+			if(ev && ev.target && ev.target.hasAttribute('ignore-routing')) // will ignore submit routes and instead return to the page that just was submitted
+				this._afterSubmitRedirect = this.url;
+			
 			if(!this._form)
 				this._form = this.form;
 
@@ -533,38 +591,53 @@
 		},
 
 		formSubmitted : function(ev) {
-			var parser, path, pre, isNavigated;
+			var parser, path, pre, isNavigated, targetPath, redirEv;
 
 			console.log("formSubmitted!");
 
+			this._unchanged = true;
+			
 			parser = document.createElement('a'); // a brilliant method from https://gist.github.com/jlong/2428561
 			parser.href = this._form.action;
 			path = parser.pathname;
 
 			this.isSubmitInProgress = false;
 			this.httpMethod = null;
+			
+			this._unchanged = true;
+			
 			this.fire('submit-complete', this.lastFormResponse);
 
 			this._evDetailObj.response = this.lastFormResponse;
 
-			this.fire('submit-complete-routing', this._evDetailObj);
-
-			for(i = 0; i < this.routes.length; i++)
+			if(this._afterSubmitRedirect)
 			{
-				pre = new RegExp(this.routes[i].from);
-				if(pre.test(path))
+				this.navigate(this.url);
+				this._afterSubmitRedirect = false;
+				isNavigated = true;
+			}
+			else
+			{
+				this.fire('submit-complete-routing', this._evDetailObj);
+				for(i = 0; i < this.routes.length; i++)
 				{
-					isNavigated = true;
-					this.navigate(path.replace(pre, this.routes[i].to));
+					pre = new RegExp(this.routes[i].from);
+					if(pre.test(path))
+					{
+						isNavigated = true;
+						targetPath = path.replace(pre, this.routes[i].to);
+						redirEv = this.fire('before-submit-redirect', { frame : this, url : targetPath }, { cancelable : true });
+						if(!redirEv.defaultPrevented)
+							this.navigate(targetPath);
+					}
 				}
 			}
-
+			
 			if(!isNavigated && this.lastFormResponse)
 				this.content = this.lastFormResponse;
 
 			this._evDetailObj = null;
 
-			window.onbeforeunload = null;
 			this.isSubmitEnds = true;
 
 			this.setDisplayMode('ready');
@@ -607,6 +680,7 @@
 			this.mode = mode;
 			this.$.spinner.active = mode == 'waiting';
 			this.$.backdrop.style.display = this.$.spinner.active ? 'block' : 'none';
+			
 			//this.$.viewPort.style.visibility = this.$.spinner.active ? 'none' : 'block';
 		},
 	});
