@@ -375,7 +375,8 @@
 
 		setTitle : function() {
 			var titleEl = Polymer.dom(this.$.viewPort).querySelector('[title]') || Polymer.dom(this.$.viewPort).querySelector('h1');
-			this.set('title', titleEl.innerText);
+			if(titleEl && titleEl.innerText)
+				this.set('title', titleEl.innerText);
 		},
 		
 		contentObserverCallback : function(info) {
