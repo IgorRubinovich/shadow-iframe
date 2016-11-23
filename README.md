@@ -21,8 +21,10 @@ In general, it does what an IFRAME would be doing but without being an iframe an
 Also see the bundled demo.
 
 ### Properties
+TO DO
 
 ### Methods
+TO DO
 	
 ### Events
 
@@ -46,6 +48,9 @@ Also see the bundled demo.
 ### Todo:
 - better docs
 - support for multiple forms
+
+### Contributions
+Are welcome.
 
 ### License
 MIT
