@@ -1,0 +1,7 @@
+{
+  "name": "shadow-iframe-demo",
+  "dependencies": {
+    "iron-ajax": "^1.4.3",
+    "paper-input": "^1.1.22"
+  }
+}
