@@ -8,7 +8,7 @@
 		}
 
 		#viewPort {
-			padding : 5px 5px 5px 10px;
+			/* padding : 5px 5px 5px 10px; */
 		}
 
 		#backdrop {
@@ -283,7 +283,7 @@
 		formChecker: function(){
 			var that = this;
 			var validators = this.querySelectorAll('ir-input-validator');
-            validators = Array.prototype.filter.call(validators, function(el) { return el != that });
+            validators = Array.prototype.filter.call(validators, function(el) { return el != that }) || [];
 			if(validators && validators.length > 0){
                 var valid = true;
                 validators.forEach(function(el, i) {
@@ -381,12 +381,12 @@
 		
 		contentObserverCallback : function(info) {
 			this.cancelDebouncer("content-dom-changed");
-			this.debounce("content-dom-changed", this.contentObserverCallbackDebounced.bind(this, event), 250);
+			this.debounce("content-dom-changed", this.contentObserverCallbackDebounced.bind(this, info), 250);
 		},
 		contentObserverCallbackDebounced : function() {
 			Polymer.dom(this.$.viewPort).unobserveNodes(this._contentObserver);
 			
-			this.setTitle();
+			this.setTitle(); // experimental
 			
 			this.fire('rendered'); 
 			
@@ -401,12 +401,12 @@
 			this.$.viewPort.removeEventListener("dom-change", this._domChangeListener);
 			this._domChangeListener = null;
 			
-			var viewPort = this.$.viewPort;
+			var viewPort = Polymer.dom(this.$.viewPort);
 			
 			this.form = viewPort.querySelector("form");
-			var submitters = viewPort.querySelectorAll("[type='submit']")
+			var submitters = viewPort.querySelectorAll("[type='submit']");
 
-			if(this.hideSubmit || this.hijackForm)
+			if(submitters && (this.hideSubmit || this.hijackForm))
 				submitters.forEach(function(el) {
 					if(el.__bound) return;
 					el.__bound = true;
@@ -416,6 +416,8 @@
 					if(this.hijackForm)
 						el.addEventListener('click', function(ev) { this.onSubmit(ev); }.bind(this) );
 				}.bind(this));
+
+			console.log("submitters", submitters)
 
 			if(this.form)
 			{
