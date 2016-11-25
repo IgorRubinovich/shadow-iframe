@@ -459,12 +459,9 @@
 				scripts[i].parentNode.removeChild(scripts[i]);
 			}
 
-			if(/Firefox/.test(navigator.userAgent))
-			{
-				var templates = Polymer.dom(viewPort).querySelectorAll('template');
-				for(var j = 0; j < templates.length; j++)
-					this.injectBoundHTML(templates[j]);
-			}
+			var templates = Polymer.dom(viewPort).querySelectorAll('template');
+			for(var j = 0; j < templates.length; j++)
+				this.injectBoundHTML(templates[j]);
 			//viewPort.removeEventListener("dom-change", this._viewPortChanged);
 
 			this.fire('ready');
