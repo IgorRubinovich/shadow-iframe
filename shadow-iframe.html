@@ -39,7 +39,7 @@
 	<template>
 	
 		<div id="viewPortWrapper">
-			<div id="viewPort">
+			<div id="viewPort" on-shadow-script-injected="_shadowScriptInjected">
 			</div>
 		</div>
 		<div id="backdrop" class="fit center">
@@ -362,7 +362,7 @@
 			
 			
 			Polymer.dom(this.$.viewPort).innerHTML = this.content;
-
+			this.updateStyles();
 			
 			if(!this._domChangeListener) { 
 				this._domChangeListener = this._viewPortChangedDebounced.bind(this);
@@ -401,7 +401,8 @@
 			this.$.viewPort.removeEventListener("dom-change", this._domChangeListener);
 			this._domChangeListener = null;
 			
-			var viewPort = Polymer.dom(this.$.viewPort);
+			//var viewPort = Polymer.dom(this.$.viewPort);
+			var viewPort = this.$.viewPort;
 			
 			this.form = viewPort.querySelector("form");
 			var submitters = viewPort.querySelectorAll("[type='submit']");
@@ -436,26 +437,42 @@
 			}
 
 			// seems that using Polymer.dom(..).innerHTML had solved the scripts problem
-			var scripts = []; // experimental // viewPort.querySelectorAll('script');
-				for (var i=0; i<scripts.length; i++)
-				{
-					if (scripts[i].nodeName != 'SCRIPT')
-				    	throw new Error("swapScript requires script");
-				    var clone = document.createElement('script');
-				  	clone.appendChild( document.createTextNode(scripts[i].textContent));
-				 	scripts[i].parentNode.insertBefore(clone, scripts[i]);
-				  	scripts[i].parentNode.removeChild(scripts[i]);
-				}
+			//var scripts = Polymer.dom(viewPort).querySelectorAll('script');
 
+			//var scripts = []; // experimental // viewPort.querySelectorAll('script');
+			
+			
+			
+			var scripts = Polymer.dom(viewPort).querySelectorAll('script');
+			for (var i=0; i<scripts.length; i++)
+			{
+				if (scripts[i].nodeName != 'SCRIPT')
+					throw new Error("swapScript requires script");
+				var clone = document.createElement('script'), sc;
+				
+				//sc = "(function() { console.log('injected', Polymer.Base.fire); new CustomEvent('shadow-script-injected'', { 'detail': elem.dataset.time }), function() {}, { node : document.activeScript }) })()"; //Polymer.Base.fire('shadow-script-injected', { callback : function(localDocument){" + scripts[i].textContent + ";}})})()";
+	
+				sc = scripts[i].textContent;
+	
+				clone.appendChild(document.createTextNode(sc));
+				scripts[i].parentNode.insertBefore(clone, scripts[i]);
+				scripts[i].parentNode.removeChild(scripts[i]);
+			}
+
+			if(/Firefox/.test(navigator.userAgent))
+			{
 				var templates = Polymer.dom(viewPort).querySelectorAll('template');
 				for(var j = 0; j < templates.length; j++)
 					this.injectBoundHTML(templates[j]);
-
+			}
 			//viewPort.removeEventListener("dom-change", this._viewPortChanged);
 
 			this.fire('ready');
 		},
-
+		
+		_shadowScriptInjected : function(e) {
+			e.detail.callback(Polymer.dom(this.$.viewPort));
+		},
 
 		injectBoundHTML : function(element) {
 		    var template = element.cloneNode(false);

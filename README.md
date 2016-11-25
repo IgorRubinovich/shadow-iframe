@@ -43,7 +43,20 @@ TO DO
 
 
 ### Caveats:
-- Styles loaded from a url into one instance will leak to another. With careful design this should not be a problem as this is the normal "css way"
+<b>Styles</b> 
+
+Styles are loaded from a url into one instance will leak to another. With careful design this should not be a problem as this is the normal "css way"
+
+<b>Scripts</b> 
+
+If planning a behavior that requires dom-bind, consider building an actual custom element instead. This component is good for navigating simple content and implementing 
+simple forms, but when substantial interactivity is required an element will be more versatile, faster and easier to implement. 
+
+If still not convinced and you want to go ahead and try it note these:
+
+* put the script outside the dom-bind template. If you put it inside the template Chrome/IE vs FF would interpret this differently and you will see weird behavior
+* use document.activeScript to find the dom-bind template in the dom. Global ids are another option but would likely not work with a real shadow dom.
+
 
 ### Todo:
 - better docs
