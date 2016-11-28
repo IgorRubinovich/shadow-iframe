@@ -35,16 +35,21 @@
 		#previewDialogButtons {
 			text-align : right;
 		}
+		paper-progress {
+			height : 1px;
+			width : 100%;
+			--paper-progress-container-color: transparent;
+		}
 	</style>
 	<template>
-	
+		<paper-progress id="spinner" indeterminate disabled="{{ !spinnerActive }}"></paper-progress>
 		<div id="viewPortWrapper">
 			<div id="viewPort" on-shadow-script-injected="_shadowScriptInjected">
 			</div>
 		</div>
-		<div id="backdrop" class="fit center">
+		<!-- div id="backdrop" class="fit center">
 			<paper-spinner id="spinner"></paper-spinner>
-		</div>
+		</div -->
 
 		<paper-dialog id="redirectDialog" with-backdrop>
 			<div id="previewDialogHeader"></div>
@@ -151,6 +156,17 @@
 			title : {
 				type : String,
 				value : "[untitled]",
+				notify : true
+			},
+			
+			spinnerActive : {
+				type : Boolean,
+				computed : "_spinnerActive(mode)",
+				notify : true
+			},
+			mode : {
+				type : String,
+				value : "ready",
 				notify : true
 			}
 
@@ -313,7 +329,7 @@
 					else
 						window.onbeforeunload = null;
 				}
-				this.setDisplayMode('waiting');
+				this.set('mode', 'waiting');
 				
 				this.cancelDebouncer("view-port-changed");
 				this.$.viewPort.removeEventListener("dom-change", this._domChangeListener);
@@ -398,14 +414,17 @@
 			this.debounce("view-port-changed", this._viewPortChanged.bind(this, event), 250);
 		},
 		_viewPortChanged : function(event) {
-			this.$.viewPort.removeEventListener("dom-change", this._domChangeListener);
-			this._domChangeListener = null;
-			
+			if(this._domChangeListener)
+			{
+				this.$.viewPort.removeEventListener("dom-change", this._domChangeListener);
+				this._domChangeListener = null;
+			}
+
 			//var viewPort = Polymer.dom(this.$.viewPort);
 			var viewPort = this.$.viewPort;
 			
-			this.form = viewPort.querySelector("form");
-			var submitters = viewPort.querySelectorAll("[type='submit']");
+			this.form = Polymer.dom(viewPort).querySelector("form");
+			var submitters = Polymer.dom(viewPort).querySelectorAll("[type='submit']");
 
 			if(submitters && (this.hideSubmit || this.hijackForm))
 				submitters.forEach(function(el) {
@@ -602,7 +621,7 @@
 
 			this.$.formSubmitter.generateRequest();
 
-			this.setDisplayMode('waiting');
+			this.set('mode', 'waiting');
 
 			console.log('submitting form');
 		},
@@ -657,7 +676,7 @@
 
 			this.isSubmitEnds = true;
 
-			this.setDisplayMode('ready');
+			this.set('mode', 'ready');
 
 			this._form = null;
 		},
@@ -682,24 +701,32 @@
 			}.bind(this)});
 
 			this.fire("error");
-			this.setDisplayMode('ready');
+			this.set('mode', 'ready');
 		},
 
 		urlLoaded : function(ev) {
 			this.fire('loaded');
-			this.setDisplayMode('ready');
+			this.set('mode', 'ready');
 
 			//this.content = "";
 			this.set('content',  ev.detail.response);
 		},
-
-		setDisplayMode : function(mode) {
+		
+		_spinnerActive : function() {
+			return this.mode == 'waiting';
+		},
+		
+		/*setDisplayMode : function(mode) {
 			this.mode = mode;
-			this.$.spinner.active = mode == 'waiting';
-			this.$.backdrop.style.display = this.$.spinner.active ? 'block' : 'none';
+			this.set(mode == 'waiting', this.$.spinner.active);
+			//this.$.backdrop.style.display = this.$.spinner.active ? 'block' : 'none';
 			
 			//this.$.viewPort.style.visibility = this.$.spinner.active ? 'none' : 'block';
-		},
+		},*/
+		
+		refresh : function() {
+			this.navigate(this.url);
+		}
 	});
 
 	function urlEncodeForm(form) {
