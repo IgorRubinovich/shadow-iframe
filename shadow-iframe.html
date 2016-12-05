@@ -622,14 +622,10 @@
 			this.$.formSubmitter.generateRequest();
 
 			this.set('mode', 'waiting');
-
-			console.log('submitting form');
 		},
 
 		formSubmitted : function(ev) {
-			var parser, path, pre, isNavigated, targetPath, redirEv;
-
-			console.log("formSubmitted!");
+			var parser, path, pre, isNavigated, targetPath, redirEv, completeEv;
 
 			this._unchanged = true;
 			
@@ -641,8 +637,16 @@
 			this.httpMethod = null;
 			
 			this._unchanged = true;
+
+			completeEv = this.fire('submit-complete', {
+				response : this.lastFormResponse,
+				submitUrl : this.$.formSubmitter.url,
+				submitter : this.$.formSubmitter,
+				wouldRedirect : !this._afterSubmitRedirect
+			}, { cancelable : true });
 			
-			this.fire('submit-complete', this.lastFormResponse);
+			if(completeEv.defaultPrevented)
+				return;
 
 			this._evDetailObj.response = this.lastFormResponse;
 
