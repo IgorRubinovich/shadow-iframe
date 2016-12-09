@@ -183,9 +183,7 @@
 
  			"keyup,click".split(',').forEach(function(evType)
 			{
-				this.addEventListener(evType, function(e) {
-					this.updateChangedState(e);
-				}.bind(this));
+				this.addEventListener(evType, this.updateChangedState);
 			}.bind(this));
 
  			"keyup,click".split(',').forEach(function(evType) {
@@ -216,7 +214,24 @@
 		},
 		
 		detached : function() {
+			this.isAttached = false;
+			console.log("shadow-iframe had been detached", this)
 			this.removeEventListener('beforeunload', this._confirmExitBound);
+			this.fire('shadow-iframe-detached', this, { bubbles : true, node : document });
+		},
+		
+		getAncestorForm : function(el) {
+			var f = el;
+
+			if(el.__ancestorForm)
+				return el.__ancestorForm;
+				
+			while(f && f.tagName != 'FORM')
+				f = Polymer.dom(f).parentNode;
+				
+			el.__ancestorForm = f;
+			
+			return f;
 		},
 		
 		updateChangedState : function(e) {
@@ -225,29 +240,26 @@
 			if(this.hasAttribute('ignore-form-changes'))
 				return;
 			
-			var f = Polymer.dom(this.root).querySelector('form');
+			//var f = Polymer.dom(this.root).querySelector('form');
+			var f = this.getAncestorForm(e.target);
+			
 			if(!f)
 				return this._unchanged = true;
 			
-			currentFormContent = urlEncodeForm(f)			
-			
+			currentFormContent = urlEncodeForm(f);
+
 			if(!e) e = {};
 
-			if(this._firstTime) // e.type != "change" && 
+			if(!f._originalFormContent) // e.type != "change" && 
+				f._originalFormContent = currentFormContent;
+			else
+			if(f._originalFormContent == currentFormContent && !this._unchanged)
 			{
-				this._originalFormContent = currentFormContent;
-				this._firstTime = false;
+				this._unchanged = true;
+				this.fire('unchange');
 			}
 			else
-			if(this._originalFormContent == currentFormContent)
-			{
-				if(!this._unchanged)
-				{
-					this.fire('unchange');
-					this._unchanged = true;
-				}
-			}
-			else
+			if(f._originalFormContent != currentFormContent && this._unchanged)
 			{
 				this._unchanged = false;
 				this.fire('formchange');
@@ -255,7 +267,11 @@
 		},
 	
 		attached : function() {
-			this.set("viewPort", this.$.viewPort); 
+			this.set("viewPort", this.$.viewPort);
+			this.isAttached = true;
+			if(this._loadedBeforeAttached) {
+				this.set('content',  this._loadedBeforeAttached);
+			}
 		},
 
 
@@ -636,8 +652,6 @@
 			this.isSubmitInProgress = false;
 			this.httpMethod = null;
 			
-			this._unchanged = true;
-
 			completeEv = this.fire('submit-complete', {
 				response : this.lastFormResponse,
 				submitUrl : this.$.formSubmitter.url,
@@ -713,7 +727,10 @@
 			this.set('mode', 'ready');
 
 			//this.content = "";
-			this.set('content',  ev.detail.response);
+			if(this.isAttached)
+				this.set('content',  ev.detail.response);
+			else
+				this._loadedBeforeAttached = ev.detail.response;
 		},
 		
 		_spinnerActive : function() {
