@@ -565,11 +565,11 @@
 
 			this.formChecker();
 
-			if(ev && ev.target && ev.target.hasAttribute('ignore-routing')) // will ignore submit routes and instead return to the page that just was submitted
-				this._afterSubmitRedirect = this.url;
+			// ignore-routing attribute will cause shadow-iframe to ignore submit routes and instead return to the page that just was submitted
+			this._afterSubmitRedirect = ev && ev.target && ev.target.hasAttribute('ignore-routing') ? this.url : null;
 			
-			if(!this._form)
-				this._form = this.form;
+			//if(!this._form)
+			this._form = this.form;
 
 			if(ev)
 			{
