@@ -566,7 +566,7 @@
 			this.formChecker();
 
 			// ignore-routing attribute will cause shadow-iframe to ignore submit routes and instead return to the page that just was submitted
-			this._afterSubmitRedirect = ev && ev.target && ev.target.hasAttribute('ignore-routing') ? this.url : null;
+			this._ignoreRouting = ev && ev.target && ev.target.hasAttribute('ignore-routing') ? this.url : null;
 			
 			//if(!this._form)
 			this._form = this.form;
@@ -656,7 +656,7 @@
 				response : this.lastFormResponse,
 				submitUrl : this.$.formSubmitter.url,
 				submitter : this.$.formSubmitter,
-				wouldRedirect : !this._afterSubmitRedirect
+				ignoreRouting : this._ignoreRouting
 			}, { cancelable : true });
 			
 			if(completeEv.defaultPrevented)
@@ -664,10 +664,10 @@
 
 			this._evDetailObj.response = this.lastFormResponse;
 
-			if(this._afterSubmitRedirect)
+			if(this._ignoreRouting)
 			{
 				this.navigate(this.url);
-				this._afterSubmitRedirect = false;
+				this._ignoreRouting = false;
 				isNavigated = true;
 			}
 			else
@@ -747,6 +747,18 @@
 		
 		refresh : function() {
 			this.navigate(this.url);
+		},
+		
+		abort : function() {
+			var r = this.$.contentLoader.lastRequest;
+			
+			if(r) r.abort();
+		},
+		
+		/* abort the current request and set content to empty */
+		reset : function() {
+			this.abort();
+			this.set("content", "");
 		}
 	});
 
